@@ -91,12 +91,14 @@ class Client:
         request.opt.observe = 0
         requester = self._client_context.request(request)
         ## https://github.com/chrysn/aiocoap/blob/1f03d4ceb969b2b443c288c312d44c3b7c3e2031/aiocoap/cli/client.py#L296
+        logger.info("Callback part start")
         observation_is_over = asyncio.get_event_loop().create_future()
         requester.observation.register_errback(observation_is_over.set_result)
         requester.observation.register_callback(lambda data: on_valuechange_callback(decrypt_status(data)))#lambda data, options=options: incoming_observation(options, data))
-        
+        logger.info("Get first data")
         response = await requester.response
         data = decrypt_status(response)
+        logger.info(f"Decrypted {data} - call callback")
         on_valuechange_callback(data)
 
         exit_reason = await observation_is_over
