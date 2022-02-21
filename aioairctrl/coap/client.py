@@ -95,14 +95,8 @@ class Client:
         timeout = 100
         logger.info("Callback part start")
         observation_is_over = asyncio.get_event_loop().create_future()
-        requester.observation.register_errback(observation_is_over.set_result)
-        requester.observation.register_callback(lambda data: ( timeout_reset(), on_valuechange_callback(decrypt_status(data))))#lambda data, options=options: incoming_observation(options, data))
-        logger.info("Get first data")
-        response = await requester.response
-        logger.info(f"max age {response.opts.max_age}")
-        timeout = response.opts.max_age
-        #response.opts.max_age
-        #timout
+        ### einschub1
+
         async def timer(timeout):
             try:
                 logger.info(f"Starte Timer {timeout}s.")
@@ -113,10 +107,20 @@ class Client:
             except:
                 logger.exception("Timer callback failure")
 
+
+        requester.observation.register_errback(observation_is_over.set_result)
+        requester.observation.register_callback(lambda data: ( timeout_reset(), on_valuechange_callback(decrypt_status(data))))#lambda data, options=options: incoming_observation(options, data))
+        logger.info("Get first data")
+        response = await requester.response
+        logger.info(f"max age {response.opts.max_age}")
+        timeout = response.opts.max_age
+        #response.opts.max_age
+        #timout
+        #einschub 2
         task = asyncio.ensure_future(timer(timeout))
         def timeout_reset(timeout):
-            logger.info("Timeout reset")
             global task
+            logger.info("Timeout reset")
             task._cancel()
             task = asyncio.ensure_future(timer(timeout))
 
