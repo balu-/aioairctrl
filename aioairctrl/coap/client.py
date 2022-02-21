@@ -105,16 +105,17 @@ class Client:
         #timout
         async def timer(timeout):
             try:
-                logger.debug(f"Starte Timer {timeout}s.")
+                logger.info(f"Starte Timer {timeout}s.")
                 await asyncio.sleep(timeout)
                 observation_is_over.set_result #cancel observation
             except asyncio.exceptions.CancelledError:
-                logger.debug("Timer cancelled")
+                logger.info("Timer cancelled")
             except:
                 logger.exception("Timer callback failure")
 
         task = asyncio.ensure_future(timer(timeout))
         def timeout_reset(timeout):
+            logger.info("Timeout reset")
             global task
             task._cancel()
             task = asyncio.ensure_future(timer(timeout))
