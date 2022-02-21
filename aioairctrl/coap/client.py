@@ -91,12 +91,36 @@ class Client:
         request.opt.observe = 0
         requester = self._client_context.request(request)
         ## https://github.com/chrysn/aiocoap/blob/1f03d4ceb969b2b443c288c312d44c3b7c3e2031/aiocoap/cli/client.py#L296
+        # preset timeout
+        timeout = 100
         logger.info("Callback part start")
         observation_is_over = asyncio.get_event_loop().create_future()
         requester.observation.register_errback(observation_is_over.set_result)
-        requester.observation.register_callback(lambda data: on_valuechange_callback(decrypt_status(data)))#lambda data, options=options: incoming_observation(options, data))
+        requester.observation.register_callback(lambda data: ( timeout_reset(), on_valuechange_callback(decrypt_status(data))))#lambda data, options=options: incoming_observation(options, data))
         logger.info("Get first data")
         response = await requester.response
+        logger.info(f"max age {response.opts.max_age}")
+        timeout = response.opts.max_age
+        #response.opts.max_age
+        #timout
+        async def timer(timeout):
+            try:
+                logger.debug(f"Starte Timer {timeout}s.")
+                await asyncio.sleep(timeout)
+                observation_is_over.set_result #cancel observation
+            except asyncio.exceptions.CancelledError:
+                logger.debug("Timer cancelled")
+            except:
+                logger.exception("Timer callback failure")
+
+        task = asyncio.ensure_future(timer(timeout))
+        def timeout_reset(timeout):
+            global task
+            task._cancel()
+            task = asyncio.ensure_future(timer(timeout))
+
+
+
         data = decrypt_status(response)
         logger.info(f"Decrypted {data} - call callback")
         on_valuechange_callback(data)
