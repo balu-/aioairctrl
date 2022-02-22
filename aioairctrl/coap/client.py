@@ -112,8 +112,8 @@ class Client:
         requester.observation.register_callback(lambda data: ( timeout_reset(), on_valuechange_callback(decrypt_status(data))))#lambda data, options=options: incoming_observation(options, data))
         logger.info("Get first data")
         response = await requester.response
-        logger.info(f"max age {response.opts.max_age}")
-        timeout = response.opts.max_age
+        logger.info(f"max age {response.opt.max_age}")
+        timeout = response.opt.max_age
         #response.opts.max_age
         #timout
         #einschub 2
