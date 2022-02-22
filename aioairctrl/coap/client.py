@@ -120,7 +120,7 @@ class Client:
         self.ttask = asyncio.ensure_future(timer(timeout))
         def timeout_reset(timeout):
             logger.info("Timeout reset")
-            self.ttask._cancel()
+            self.ttask.cancel()
             self.ttask = asyncio.ensure_future(timer(timeout))
 
 
