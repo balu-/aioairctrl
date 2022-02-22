@@ -117,12 +117,11 @@ class Client:
         #response.opts.max_age
         #timout
         #einschub 2
-        task = asyncio.ensure_future(timer(timeout))
+        self.ttask = asyncio.ensure_future(timer(timeout))
         def timeout_reset(timeout):
-            global task
             logger.info("Timeout reset")
-            task._cancel()
-            task = asyncio.ensure_future(timer(timeout))
+            self.ttask._cancel()
+            self.ttask = asyncio.ensure_future(timer(timeout))
 
 
 
