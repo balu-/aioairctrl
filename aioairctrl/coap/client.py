@@ -133,7 +133,7 @@ class Client:
         logger.info("Get first data")
         response = await requester.response
         logger.info(f"max age {response.opt.max_age}")
-        timeout = response.opt.max_age
+        timeout = response.opt.max_age + 7 # add some slack
         timer.setTimeout(timeout)
 
         data = decrypt_status(response)
