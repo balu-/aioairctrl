@@ -17,6 +17,30 @@ from aioairctrl.coap.encryption import EncryptionContext
 
 logger = logging.getLogger(__name__)
 
+class Timer:
+    def __init__(self, timeout, callback):
+        self._softRestart = False
+        self._timeout = timeout
+        self._callback = callback
+        self._task = asyncio.ensure_future(self._job())
+
+    async def _job(self):
+        await asyncio.sleep(self._timeout)
+        while self._softRestart == True:
+            self._softRestart = False
+            await asyncio.sleep(self._timeout)
+        await self._callback()
+
+    def cancel(self):
+        self._task.cancel()
+
+    def soft_restart(self):
+        self._softRestart = True
+
+    def setTimeout(self, timeout:int):
+        self._timeout = timeout
+
+
 
 class Client:
     STATUS_PATH = "/sys/dev/status"
@@ -95,35 +119,16 @@ class Client:
         timeout = 100
         logger.info("Callback part start")
         observation_is_over = asyncio.get_event_loop().create_future()
-        ### einschub1
-
-        async def timer(timeout):
-            try:
-                logger.info(f"Starte Timer {timeout}s.")
-                await asyncio.sleep(timeout)
-                observation_is_over.set_result #cancel observation
-            except asyncio.exceptions.CancelledError:
-                logger.info("Timer cancelled")
-            except:
-                logger.exception("Timer callback failure")
-
-
+        
+        timer = Timer(timeout, observation_is_over.set_result)  # set timer to cancel listening
         requester.observation.register_errback(observation_is_over.set_result)
-        requester.observation.register_callback(lambda data, timeout=timeout: ( timeout_reset(timeout), on_valuechange_callback(decrypt_status(data))))#lambda data, options=options: incoming_observation(options, data))
+        requester.observation.register_callback(lambda data, timeout=timeout: ( timer.soft_restart(), on_valuechange_callback(decrypt_status(data))))#lambda data, options=options: incoming_observation(options, data))
+        
         logger.info("Get first data")
         response = await requester.response
         logger.info(f"max age {response.opt.max_age}")
         timeout = response.opt.max_age
-        #response.opts.max_age
-        #timout
-        #einschub 2
-        self.ttask = asyncio.ensure_future(timer(timeout))
-        def timeout_reset(timeout):
-            logger.info("Timeout reset")
-            self.ttask.cancel()
-            self.ttask = asyncio.ensure_future(timer(timeout))
-
-
+        timer.setTimeout(timeout)
 
         data = decrypt_status(response)
         logger.info(f"Decrypted {data} - call callback")
