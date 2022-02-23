@@ -29,6 +29,7 @@ class Timer:
         while self._softRestart == True:
             self._softRestart = False
             await asyncio.sleep(self._timeout)
+        logger.info("Timeout!")
         await self._callback()
 
     def cancel(self):
@@ -97,6 +98,10 @@ class Client:
         state_reported = json.loads(payload)
         return state_reported["state"]["reported"]
 
+    def setFuture(self, observation_is_over):
+        logger.info("Setting Future value")
+        observation_is_over.set_result("None")
+
     async def observe_status(self, on_valuechange_callback: Callable[[dict], None] ):
         """ Observe status call on_valuechange_callback when data changes"""
         def decrypt_status(response):
@@ -120,8 +125,9 @@ class Client:
         logger.info("Callback part start")
         observation_is_over = asyncio.get_event_loop().create_future()
         
-        timer = Timer(timeout, observation_is_over.set_result)  # set timer to cancel listening
-        requester.observation.register_errback(observation_is_over.set_result)
+        timer = Timer(timeout, lambda observation_is_over=observation_is_over: self.setFuture(observation_is_over))  # set timer to cancel listening
+        #requester.observation.register_errback(observation_is_over.set_result)
+        requester.observation.register_errback(lambda observation_is_over=observation_is_over: self.setFuture(observation_is_over))
         requester.observation.register_callback(lambda data, timeout=timeout: ( timer.soft_restart(), on_valuechange_callback(decrypt_status(data))))#lambda data, options=options: incoming_observation(options, data))
         
         logger.info("Get first data")
