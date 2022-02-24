@@ -131,7 +131,7 @@ class Client:
         requester.observation.register_callback(lambda data, timeout=timeout: ( timer.soft_restart(), on_valuechange_callback(decrypt_status(data))))#lambda data, options=options: incoming_observation(options, data))
         
         logger.info("Get first data")
-        response = await requester.response
+        response = await asyncio.wait_for(requester.response, timeout=timeout)
         logger.info(f"max age {response.opt.max_age}")
         timeout = response.opt.max_age + 7 # add some slack
         timer.setTimeout(timeout)
